@@ -1,0 +1,12 @@
+curl -X POST https://cedapay-shopify.up.railway.app/admin/merchants \
+  -H "Content-Type: application/json" \
+  -H "x-admin-secret: YOUR_ADMIN_SECRET" \
+  -d '{
+  "shop_domain": "http://7kingskratom.com/",
+  "business_name": "Maz Group",
+  "cedapay_api_key": "sk_live_...",
+  "cedapay_publishable_key": "pk_live_...",
+  "webhook_secret": "whsec_...",
+  "sdk_mode": false,
+  "active": false
+}'
