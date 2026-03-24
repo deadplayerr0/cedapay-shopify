@@ -69,3 +69,25 @@ app.get("/auth/callback", async (req, res) => {
 app.listen(process.env.PORT, () => {
   console.log("Server running on port " + process.env.PORT);
 });
+
+app.get("/auth", (req, res) => {
+  const shop = req.query.shop;
+
+  if (!shop) {
+    return res.status(400).send("Missing shop");
+  }
+
+  const apiKey = process.env.SHOPIFY_API_KEY;
+  const scopes = "read_orders,write_orders";
+  const redirectUri = process.env.APP_URL + "/auth/callback";
+  const state = Math.random().toString(36).substring(2, 15);
+
+  const installUrl =
+    `https://${shop}/admin/oauth/authorize?` +
+    `client_id=${encodeURIComponent(apiKey)}` +
+    `&scope=${encodeURIComponent(scopes)}` +
+    `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+    `&state=${encodeURIComponent(state)}`;
+
+  return res.redirect(installUrl);
+});
