@@ -1,0 +1,8 @@
+{
+  "merchant1.myshopify.com": {
+    "cedapay_secret_key": "sk_test_xxxxx",
+    "cedapay_publishable_key": "pk_test_xxxxx",
+    "mode": "test",
+    "updated_at": "2026-03-24T21:20:19.935Z"
+  }
+}
