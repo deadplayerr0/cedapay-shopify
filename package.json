@@ -1,13 +1,13 @@
 {
   "name": "cedapay-shopify-gateway",
-  "version": "0.0.1",
-  "description": "CedaPay Payment Gateway for Shopify — Multi-Merchant, Render-Hosted",
+  "version": "0.0.2",
+  "description": "CedaPay Payment Gateway for Shopify — Multi-Merchant, Render-Hosted, Payments Apps API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
-  "keywords": ["shopify", "payments", "cedapay", "payment-gateway"],
+  "keywords": ["shopify", "payments", "cedapay", "payment-gateway", "payments-app"],
   "author": "CedaPay",
   "license": "ISC",
   "type": "commonjs",
