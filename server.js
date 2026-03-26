@@ -1,9 +1,9 @@
 /**
- * CedaPay Shopify App — v1.1.0
+ * CedaPay Shopify App — v1.2.0
  * Multi-Merchant, Render-Hosted
  * 
- * Fixes: OAuth token exchange, ScriptTag injection, App Bridge embedding,
- * per-merchant keys, HMAC verification, proper Render startup.
+ * Features: OAuth install, Payments Apps API (offsite gateway),
+ * per-merchant keys, HMAC verification, GDPR webhooks, App Bridge embedding.
  */
 
 require("dotenv").config();
@@ -26,6 +26,7 @@ const settingsRoute = require("./routes/settings");
 const settingsPageRoute = require("./routes/settingsPage");
 const settingsFormRoute = require("./routes/settingsForm");
 const merchantStatusRoute = require("./routes/merchantStatus");
+const paymentsAppRoute = require("./routes/paymentsApp");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,7 +34,7 @@ const PORT = process.env.PORT || 3000;
 const SHOPIFY_API_KEY = process.env.SHOPIFY_API_KEY || "";
 const SHOPIFY_API_SECRET = process.env.SHOPIFY_API_SECRET || "";
 const APP_URL = process.env.APP_URL || `http://localhost:${PORT}`;
-const SCOPES = "read_orders,write_orders,write_script_tags";
+const SCOPES = "read_orders,write_orders,write_script_tags,write_payment_gateways,write_payment_sessions";
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,20 +43,27 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/public", express.static(path.join(__dirname, "public")));
 
 // ============================================
-// Health & Info
+// Health & Info — Shopify Admin Embed Detection
 // ============================================
 
 app.get("/", (req, res) => {
+  // If loaded inside Shopify Admin iframe, redirect to settings page
+  if (req.query.shop || req.query.host) {
+    return res.redirect(
+      `/settings-page?shop=${encodeURIComponent(req.query.shop || "")}&host=${encodeURIComponent(req.query.host || "")}`
+    );
+  }
+  // Otherwise return health/info JSON
   res.json({
     app: "CedaPay Shopify Payment Gateway",
-    version: "1.1.0",
+    version: "1.2.0",
     status: "running",
     docs: "https://docs.cedapay.com/shopify"
   });
 });
 
 app.get("/health", (req, res) => {
-  res.json({ status: "healthy", version: "1.1.0" });
+  res.json({ status: "healthy", version: "1.2.0" });
 });
 
 // ============================================
@@ -86,7 +94,7 @@ app.get("/auth", (req, res) => {
 });
 
 // ============================================
-// OAuth Callback — Token Exchange + ScriptTag
+// OAuth Callback — Token Exchange + Payment App Registration
 // ============================================
 
 app.get("/auth/callback", async (req, res) => {
@@ -177,10 +185,50 @@ app.get("/auth/callback", async (req, res) => {
       console.log(`✅ ScriptTag registered on ${shop}`);
     } catch (scriptErr) {
       console.error(`⚠️ ScriptTag registration failed on ${shop}:`, scriptErr.response?.data || scriptErr.message);
-      // Non-fatal — merchant can still configure keys
     }
 
-    // Step 4: Redirect to settings page (embedded in Shopify Admin)
+    // Step 4: Register as Shopify Payments App via GraphQL
+    try {
+      const paymentsAppMutation = `
+        mutation {
+          paymentsAppConfigure(
+            externalHandle: "cedapay"
+            ready: true
+          ) {
+            paymentsAppConfiguration {
+              externalHandle
+            }
+            userErrors {
+              field
+              message
+            }
+          }
+        }
+      `;
+
+      const graphqlResponse = await axios.post(
+        `https://${shop}/admin/api/2024-01/graphql.json`,
+        { query: paymentsAppMutation },
+        {
+          headers: {
+            "X-Shopify-Access-Token": accessToken,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      const userErrors = graphqlResponse.data?.data?.paymentsAppConfigure?.userErrors;
+      if (userErrors && userErrors.length > 0) {
+        console.error(`⚠️ Payments App registration errors on ${shop}:`, userErrors);
+      } else {
+        console.log(`✅ Payments App registered on ${shop}`);
+      }
+    } catch (paymentsErr) {
+      console.error(`⚠️ Payments App registration failed on ${shop}:`, paymentsErr.response?.data || paymentsErr.message);
+      // Non-fatal — merchant can still configure keys and use ScriptTag flow
+    }
+
+    // Step 5: Redirect to settings page (embedded in Shopify Admin)
     const host = req.query.host || "";
     res.redirect(`/settings-page?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host)}`);
 
@@ -200,6 +248,25 @@ app.get("/auth/callback", async (req, res) => {
 });
 
 // ============================================
+// GDPR Mandatory Webhooks (required by Shopify)
+// ============================================
+
+app.post("/webhooks/customers/data_request", (req, res) => {
+  console.log("GDPR: Customer data request received", req.body);
+  res.status(200).json({ received: true });
+});
+
+app.post("/webhooks/customers/redact", (req, res) => {
+  console.log("GDPR: Customer redact request received", req.body);
+  res.status(200).json({ received: true });
+});
+
+app.post("/webhooks/shop/redact", (req, res) => {
+  console.log("GDPR: Shop redact request received", req.body);
+  res.status(200).json({ received: true });
+});
+
+// ============================================
 // Route Mounts
 // ============================================
 
@@ -214,6 +281,7 @@ app.use("/settings", settingsRoute);
 app.use("/settings-page", settingsPageRoute);
 app.use("/settings-form", settingsFormRoute);
 app.use("/merchant-status", merchantStatusRoute);
+app.use("/payments", paymentsAppRoute);
 
 // ============================================
 // Error Handling
@@ -229,7 +297,7 @@ app.use((err, req, res, next) => {
 // ============================================
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`CedaPay Shopify v1.1.0 running on port ${PORT}`);
+  console.log(`CedaPay Shopify v1.2.0 running on port ${PORT}`);
   console.log(`App URL: ${APP_URL}`);
 });
 
