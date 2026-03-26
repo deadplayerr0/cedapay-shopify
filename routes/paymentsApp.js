@@ -191,7 +191,7 @@ router.get("/complete", async (req, res) => {
     `;
 
     await axios.post(
-      `https://${shop}/admin/api/2024-01/graphql.json`,
+      `https://${shop}/admin/api/2025-01/graphql.json`,
       {
         query: mutation,
         variables: { id: `gid://shopify/PaymentSession/${session_id}` }
@@ -249,7 +249,7 @@ router.get("/cancel", async (req, res) => {
       `;
 
       await axios.post(
-        `https://${shop}/admin/api/2024-01/graphql.json`,
+        `https://${shop}/admin/api/2025-01/graphql.json`,
         {
           query: mutation,
           variables: {
