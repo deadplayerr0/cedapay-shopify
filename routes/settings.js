@@ -3,6 +3,7 @@ const { saveMerchantKeys, getMerchantKeys } = require("../merchantStore");
 
 const router = express.Router();
 
+// Save merchant settings via API
 router.post("/", (req, res) => {
   try {
     const {
@@ -15,10 +16,7 @@ router.post("/", (req, res) => {
     } = req.body;
 
     if (!shop) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing shop"
-      });
+      return res.status(400).json({ success: false, error: "Missing shop" });
     }
 
     const saved = saveMerchantKeys(shop, {
@@ -42,24 +40,19 @@ router.post("/", (req, res) => {
       }
     });
   } catch (error) {
-    console.log("Settings save error:", error.message);
-    return res.status(500).json({
-      success: false,
-      error: "Failed to save merchant settings"
-    });
+    console.error("Settings save error:", error.message);
+    return res.status(500).json({ success: false, error: "Failed to save merchant settings" });
   }
 });
 
+// Get merchant settings via API
 router.get("/:shop", (req, res) => {
   try {
     const shop = req.params.shop;
     const merchant = getMerchantKeys(shop);
 
     if (!merchant) {
-      return res.status(404).json({
-        success: false,
-        error: "Merchant settings not found"
-      });
+      return res.status(404).json({ success: false, error: "Merchant settings not found" });
     }
 
     return res.json({
@@ -71,14 +64,12 @@ router.get("/:shop", (req, res) => {
         has_test_publishable_key: !!merchant.test_publishable_key,
         has_live_secret_key: !!merchant.live_secret_key,
         has_live_publishable_key: !!merchant.live_publishable_key,
+        has_access_token: !!merchant.shopify_access_token,
         updated_at: merchant.updated_at
       }
     });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: "Failed to get merchant settings"
-    });
+    return res.status(500).json({ success: false, error: "Failed to get merchant settings" });
   }
 });
 
