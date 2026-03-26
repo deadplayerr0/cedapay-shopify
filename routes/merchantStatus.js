@@ -8,20 +8,18 @@ router.get("/:shop", (req, res) => {
   const merchant = getMerchantKeys(shop);
 
   if (!merchant) {
-    return res.json({
-      connected: false,
-      shop
-    });
+    return res.json({ connected: false, shop });
   }
+
+  const mode = merchant.mode || "test";
+  const hasKey = mode === "live" ? !!merchant.live_secret_key : !!merchant.test_secret_key;
 
   return res.json({
     connected: true,
+    configured: hasKey,
     shop,
-    mode: merchant.mode || "test",
-    has_test_secret_key: !!merchant.test_secret_key,
-    has_test_publishable_key: !!merchant.test_publishable_key,
-    has_live_secret_key: !!merchant.live_secret_key,
-    has_live_publishable_key: !!merchant.live_publishable_key,
+    mode,
+    has_access_token: !!merchant.shopify_access_token,
     updated_at: merchant.updated_at
   });
 });
