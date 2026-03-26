@@ -1,28 +1,25 @@
 const express = require("express");
 const axios = require("axios");
+const { getMerchantApiKey } = require("../merchantStore");
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const { payment_id, amount, reason } = req.body;
+    const { payment_id, amount, reason, shop } = req.body;
 
     if (!payment_id) {
-      return res.status(400).json({
-        error: "Missing payment_id"
-      });
+      return res.status(400).json({ error: "Missing payment_id" });
     }
+
+    const apiKey = getMerchantApiKey(shop || "");
 
     const response = await axios.post(
       `${process.env.CEDAPAY_BASE_URL}/process-refund`,
-      {
-        payment_id,
-        amount,
-        reason
-      },
+      { payment_id, amount, reason },
       {
         headers: {
-          "x-api-key": process.env.CEDAPAY_API_KEY,
+          "x-api-key": apiKey,
           "Content-Type": "application/json"
         }
       }
@@ -30,14 +27,8 @@ router.post("/", async (req, res) => {
 
     return res.json(response.data);
   } catch (error) {
-    console.log(
-      "Refund error:",
-      error.response ? error.response.data : error.message
-    );
-
-    return res.status(500).json({
-      error: "Refund failed"
-    });
+    console.error("Refund error:", error.response?.data || error.message);
+    return res.status(500).json({ error: "Refund failed" });
   }
 });
 
