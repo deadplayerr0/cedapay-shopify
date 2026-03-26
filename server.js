@@ -207,7 +207,7 @@ app.get("/auth/callback", async (req, res) => {
       `;
 
       const graphqlResponse = await axios.post(
-        `https://${shop}/admin/api/2024-01/graphql.json`,
+        `https://${shop}/admin/api/2025-01/graphql.json`,
         { query: paymentsAppMutation },
         {
           headers: {
